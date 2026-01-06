@@ -1,0 +1,603 @@
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:renosh_app/screens/acceptors_settings_screen.dart';
+import 'package:renosh_app/screens/donar_location_screen.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import '../services/maps_service.dart';
+
+class AcceptorHistory extends StatelessWidget {
+  const AcceptorHistory({super.key});
+
+  void _showDonorDetailsDialog(
+    BuildContext context, {
+    required String donorName,
+    required String phoneNumber,
+    required String address,
+  }) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment.center,
+                  radius: 1.5,
+                  colors: [
+                    const Color(0xFF1A3C34).withOpacity(0.95),
+                    const Color(0xFF2D2D2D).withOpacity(0.85),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Donor Details',
+                    style: GoogleFonts.inter(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF39FF14),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Donor: $donorName',
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFFF9F7F3),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Phone: $phoneNumber',
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFFF9F7F3),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Address: $address',
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w400,
+                            color: const Color(0xFFF9F7F3),
+                          ),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: const Color(0xFF1A3C34),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.location_on,
+                            color: Color(0xFF39FF14),
+                            size: 28,
+                          ),
+                          onPressed: () {
+                            debugPrint(
+                              'Navigating to DonorLocationScreen for address: $address',
+                            );
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder:
+                                    (context) =>
+                                        DonorLocationScreen(address: address),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        debugPrint('Closed donor details dialog');
+                        Navigator.of(context).pop();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF39FF14),
+                        foregroundColor: const Color(0xFF1A3C34),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                      ),
+                      child: Text(
+                        'Close',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment.center,
+                radius: 1.5,
+                colors: [
+                  const Color(0xFF1A3C34).withOpacity(0.95),
+                  const Color(0xFF2D2D2D).withOpacity(0.85),
+                ],
+              ),
+            ),
+            child: SafeArea(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'Please log in to view your claim history.',
+                    style: GoogleFonts.inter(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFFF9F7F3),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Stack(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            gradient: RadialGradient(
+              center: Alignment.center,
+              radius: 1.5,
+              colors: [
+                const Color(0xFF1A3C34).withOpacity(0.95),
+                const Color(0xFF2D2D2D).withOpacity(0.85),
+              ],
+            ),
+          ),
+        ),
+        SafeArea(
+          child: RefreshIndicator(
+            color: const Color(0xFF39FF14),
+            backgroundColor: const Color(0xFF2D2D2D),
+            onRefresh: () async {
+              debugPrint('Refreshing AcceptorHistory');
+              await Future.delayed(const Duration(milliseconds: 500));
+            },
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Claim History',
+                    style: GoogleFonts.inter(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFFF9F7F3),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Track your claimed donations',
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFFB0B0B0),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  StreamBuilder<DocumentSnapshot>(
+                    stream:
+                        FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(user.uid)
+                            .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF39FF14),
+                          ),
+                        );
+                      }
+                      if (snapshot.hasError) {
+                        debugPrint(
+                          'Error fetching acceptor user data: ${snapshot.error}',
+                        );
+                        return Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF4A4A).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            'Failed to load user data. Pull to refresh.',
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              color: const Color(0xFFF9F7F3),
+                            ),
+                          ),
+                        );
+                      }
+                      if (!snapshot.hasData || !snapshot.data!.exists) {
+                        debugPrint(
+                          'Acceptor user data not found for ${user.uid}',
+                        );
+                        return Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2D2D2D).withOpacity(0.7),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            'Acceptor user data not found.',
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              color: const Color(0xFFB0B0B0),
+                            ),
+                          ),
+                        );
+                      }
+
+                      final userSnapshot = snapshot.data!;
+                      final userData =
+                          userSnapshot.data() as Map<String, dynamic>;
+                      final acceptorLocation =
+                          userData.containsKey('location')
+                              ? LatLng(
+                                (userData['location']['latitude'] as num?)
+                                        ?.toDouble() ??
+                                    0.0,
+                                (userData['location']['longitude'] as num?)
+                                        ?.toDouble() ??
+                                    0.0,
+                              )
+                              : null;
+
+                      return StreamBuilder<QuerySnapshot>(
+                        stream:
+                            FirebaseFirestore.instance
+                                .collection('donations')
+                                .where('acceptorId', isEqualTo: user.uid)
+                                .where(
+                                  'claimStatus',
+                                  whereIn: ['pending', 'approved', 'rejected'],
+                                )
+                                .snapshots(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                color: Color(0xFF39FF14),
+                              ),
+                            );
+                          }
+                          if (snapshot.hasError) {
+                            debugPrint(
+                              'Error in claim history query: ${snapshot.error}',
+                            );
+                            return Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(
+                                  0xFFFF4A4A,
+                                ).withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                'Failed to load claim history. Pull to refresh.',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  color: const Color(0xFFF9F7F3),
+                                ),
+                              ),
+                            );
+                          }
+                          if (!snapshot.hasData ||
+                              snapshot.data!.docs.isEmpty) {
+                            debugPrint(
+                              'No claimed donations found for user: ${user.uid}',
+                            );
+                            return Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF2D2D2D).withOpacity(0.7),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                'No claimed donations found.',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  color: const Color(0xFFB0B0B0),
+                                ),
+                              ),
+                            );
+                          }
+
+                          debugPrint(
+                            'Found ${snapshot.data!.docs.length} claimed donations for user: ${user.uid}',
+                          );
+
+                          final donationList = snapshot.data!.docs.toList();
+                          // Sort locally in memory to avoid composite index requirement
+                          donationList.sort((a, b) {
+                            final aData = a.data() as Map<String, dynamic>;
+                            final bData = b.data() as Map<String, dynamic>;
+                            final aTime =
+                                (aData['claimedAt'] as Timestamp?)?.toDate() ??
+                                DateTime(0);
+                            final bTime =
+                                (bData['claimedAt'] as Timestamp?)?.toDate() ??
+                                DateTime(0);
+                            return bTime.compareTo(aTime);
+                          });
+
+                          return ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: donationList.length,
+                            itemBuilder: (context, index) {
+                              final doc = donationList[index];
+                              final data = doc.data() as Map<String, dynamic>;
+                              final itemName =
+                                  data['item_name']?.toString() ?? 'Unnamed Item';
+                              final quantity =
+                                  (data['quantity'] as num?)?.toInt() ?? 0;
+                              final timestamp =
+                                  (data['createdAt'] as Timestamp?)?.toDate() ??
+                                  DateTime.now();
+                              final pickupTime =
+                                  data['pickupTime']?.toString() ??
+                                  'Not specified';
+                              final claimStatus =
+                                  data['claimStatus']?.toString() ?? 'Unknown';
+                              final establishmentId =
+                                  data['establishmentId']?.toString() ?? '';
+
+                              debugPrint(
+                                'Donation ${doc.id}: item=$itemName, claimStatus=$claimStatus, establishmentId=$establishmentId',
+                              );
+
+                              return FutureBuilder<DocumentSnapshot?>(
+                                future:
+                                    establishmentId == 'guest_establishment'
+                                        ? Future.value(
+                                          null,
+                                        ) // Skip lookup for hardcoded ID
+                                        : FirebaseFirestore.instance
+                                            .collection('users')
+                                            .doc(establishmentId)
+                                            .get(),
+                                builder: (context, userSnapshot) {
+                                  String donorName = 'Unknown';
+                                  String phoneNumber = 'N/A';
+                                  String address = 'N/A';
+
+                                  if (establishmentId ==
+                                      'guest_establishment') {
+                                    donorName = 'Guest Establishment';
+                                    phoneNumber = 'Not provided';
+                                    address = 'Location handled by dashboard';
+                                  } else if (userSnapshot.hasData &&
+                                      userSnapshot.data != null &&
+                                      userSnapshot.data!.exists) {
+                                    final userData =
+                                        userSnapshot.data!.data()
+                                            as Map<String, dynamic>;
+                                    donorName =
+                                        userData['name'] as String? ??
+                                        'Unknown';
+                                    phoneNumber =
+                                        userData['contact'] as String? ?? 'N/A';
+                                    address =
+                                        userData['address'] as String? ?? 'N/A';
+                                    debugPrint(
+                                      'Fetched user $establishmentId: name=$donorName, contact=$phoneNumber, address=$address',
+                                    );
+                                  } else if (userSnapshot.hasError) {
+                                    debugPrint(
+                                      'User $establishmentId not found or error: ${userSnapshot.error}',
+                                    );
+                                  }
+
+                                  return GestureDetector(
+                                    onTap: () {
+                                      debugPrint(
+                                        'Tapped donation ${doc.id}: claimStatus=$claimStatus',
+                                      );
+                                      if (claimStatus == 'approved') {
+                                        _showDonorDetailsDialog(
+                                          context,
+                                          donorName: donorName,
+                                          phoneNumber: phoneNumber,
+                                          address: address,
+                                        );
+                                      }
+                                    },
+                                    child: Container(
+                                      margin: const EdgeInsets.only(bottom: 16),
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF2D2D2D),
+                                        borderRadius: BorderRadius.circular(12),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(
+                                              0.2,
+                                            ),
+                                            blurRadius: 10,
+                                            offset: const Offset(4, 4),
+                                          ),
+                                          BoxShadow(
+                                            color: const Color(
+                                              0xFFF9F7F3,
+                                            ).withOpacity(0.05),
+                                            blurRadius: 10,
+                                            offset: const Offset(-4, -4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            itemName,
+                                            style: GoogleFonts.inter(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w600,
+                                              color: const Color(0xFFF9F7F3),
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'Quantity: $quantity',
+                                            style: GoogleFonts.inter(
+                                              fontSize: 14,
+                                              color: const Color(0xFFB0B0B0),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'Posted: ${DateFormat('MMM dd, yyyy – HH:mm').format(timestamp)}',
+                                            style: GoogleFonts.inter(
+                                              fontSize: 12,
+                                              color: const Color(0xFFB0B0B0),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'Pickup Time: $pickupTime',
+                                            style: GoogleFonts.inter(
+                                              fontSize: 12,
+                                              color: const Color(0xFFB0B0B0),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          if (acceptorLocation != null &&
+                                              data.containsKey('location'))
+                                            FutureBuilder<double?>(
+                                              future:
+                                                  MapsService.getRoadDistance(
+                                                    acceptorLocation,
+                                                    data['location'] is GeoPoint
+                                                        ? LatLng(
+                                                          (data['location']
+                                                                  as GeoPoint)
+                                                              .latitude,
+                                                          (data['location']
+                                                                  as GeoPoint)
+                                                              .longitude,
+                                                        )
+                                                        : const LatLng(0, 0),
+                                                  ),
+                                              builder: (context, distSnapshot) {
+                                                final roadDist =
+                                                    distSnapshot.data;
+                                                if (roadDist == null)
+                                                  return const SizedBox.shrink();
+                                                return Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        bottom: 4,
+                                                      ),
+                                                  child: Text(
+                                                    'Road Distance: ${roadDist.toStringAsFixed(1)} km',
+                                                    style: GoogleFonts.inter(
+                                                      fontSize: 12,
+                                                      color: const Color(
+                                                        0xFF39FF14,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          Text(
+                                            'Claim Status: ${claimStatus[0].toUpperCase()}${claimStatus.substring(1)}',
+                                            style: GoogleFonts.inter(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color:
+                                                  claimStatus == 'approved'
+                                                      ? const Color(0xFF39FF14)
+                                                      : claimStatus ==
+                                                          'rejected'
+                                                      ? const Color(0xFFFF4A4A)
+                                                      : const Color(0xFFB0B0B0),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
