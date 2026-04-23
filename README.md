@@ -1,6 +1,6 @@
 # Renosh Ecosystem: Smart Food Wastage Management Platform 🍽️🌱
 
-*Renoshwas eloped with [Sumanth](https://github.com/sumanthd032) and [Shreesha](https://github.com/Shreesha001).*
+*Renos hwas co-deloped by me [Sumanth](https://github.com/sumanthd032) and [Shreesha](https://github.com/Shreesha001).*
 
 Renosh is a comprehensive, multi-application ecosystem designed to tackle food wastage in the restaurant industry. It bridges the gap between food producers, everyday consumers, and local charities to ensure that surplus food is either sold at a discount or donated, rather than being thrown away.
 
@@ -62,9 +62,7 @@ MINI-PROJECT/
 ├── renosh_inventory/                   ← App for Advanced Inventory Management
 │
 └── xgboost-model/                      ← Python ML Backend API
-    ├── server.py                       
-    ├── trained_model.joblib            
-    └── my_restaurant_advisor.py        
+         
 ```
 
 ---
