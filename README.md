@@ -113,7 +113,7 @@ flutter run -d chrome --web-port=4000
 **For the Inventory App:**
 ```bash
 cd renosh_inventory
-flutter run -d chrome --web-port=5000
+flutter run -d chrome --web-port=8000
 ```
 
 ---
